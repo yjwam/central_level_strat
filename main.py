@@ -264,7 +264,7 @@ def trader(contract_info,ib,debugging=False):
 def main(ib,i):
     exit_code = False
     print("Starting Algorithm")
-    with open(r'contracts\AAPL.json') as f:
+    with open(r'contracts\ES.json') as f:
         contract_info = json.load(f)
     job = schedule.every().minute.at(":00").do(trader, contract_info = contract_info, ib = ib, debugging = debugging)
     while True:
