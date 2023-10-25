@@ -133,7 +133,7 @@ def check_open_orders(path,contract):
     try:
         with open(path) as f:
             temp = json.load(f)
-            if "second_quantity" in list(temp.keys()):
+            if "second_quantity" in list(temp.keys()) or "exit_price" in list(temp.keys()):
                 return False, {}
             else:
                 return True, temp
@@ -161,8 +161,8 @@ def trader(contract_info,ib,debugging=False):
     long_level = contract_info['long_level']
     short_level = contract_info['short_level']
     quantity = contract_info['no_contract']
-    first_target_pct = contract_info['first_target_pct']
-    second_target_pct = contract_info['second_target_pct']
+    first_target_point = contract_info['first_target_point']
+    second_target_point = contract_info['second_target_point']
     if not open_pos:
         cft = True
         cst = True
@@ -175,8 +175,8 @@ def trader(contract_info,ib,debugging=False):
                 position = 1
                 trade = place_order(contract,ib,"BUY",quantity)
                 traded_price = trade.fills[0].execution.price
-                first_target = traded_price*(1+first_target_pct/100)
-                second_target = traded_price*(1+second_target_pct/100)
+                first_target = traded_price + first_target_point
+                second_target = traded_price + second_target_point
                 update_results(path,contract,trade,sunday_open,first_target,second_target,0)
                 print("Taking Long Position")
                 break
@@ -184,8 +184,8 @@ def trader(contract_info,ib,debugging=False):
                 position = -1
                 trade = place_order(contract,ib,"SELL",quantity)
                 traded_price = trade.fills[0].execution.price
-                first_target = traded_price*(1+first_target_pct/100)
-                second_target = traded_price*(1+second_target_pct/100)
+                first_target = traded_price - first_target_point
+                second_target = traded_price - second_target_point
                 update_results(path,contract,trade,sunday_open,first_target,second_target,0)
                 print("Taking Short Position")
                 break
@@ -250,8 +250,8 @@ def trader(contract_info,ib,debugging=False):
             action = "BUY" if position == 1 else "SELL"
             trade = place_order(contract,ib,action,2*quantity)
             traded_price = trade.fills[0].execution.price
-            first_target = traded_price*(1+position*first_target_pct/100)
-            second_target = traded_price*(1+position*second_target_pct/100)
+            first_target = traded_price + position*first_target_point
+            second_target = traded_price + position*second_target_point
             update_results(path,contract,trade,sunday_open,first_target,second_target,reverse=True,first=0)
             if cst and not cft:
                 second_target = first_target
@@ -264,7 +264,7 @@ def trader(contract_info,ib,debugging=False):
 def main(ib,i):
     exit_code = False
     print("Starting Algorithm")
-    with open(r'contracts\ES.json') as f:
+    with open(r'contracts\AAPL.json') as f:
         contract_info = json.load(f)
     job = schedule.every().minute.at(":00").do(trader, contract_info = contract_info, ib = ib, debugging = debugging)
     while True:

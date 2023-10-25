@@ -1,0 +1,15 @@
+{
+    "contract" : {
+        "symbol" : "AAPL",
+        "secType" : "STK",
+        "exchange" : "SMART",
+        "currency" : "USD"
+    },
+    "no_contract" : 2,
+    "long_level" : 25,
+    "short_level" : 25,
+    "time_frame" : 1,
+    "first_target_point" : 2,
+    "second_target_point" : 4,
+    "trading_hours" : "ETH"
+}
