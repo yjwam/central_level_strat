@@ -144,7 +144,8 @@ def get_sunday_open(data,debugging):
     if debugging:
         return float(input("Enter sunday close: "))
     data['weekday'] = [date.weekday() for date in data['date']]
-    data = data.sort_values(by=['date'], ascending=False)
+    data = data.sort_values(by=['weekday','date'], ascending=False)
+    data = data.reset_index()
     sunday_open = data.loc[0,'open']
     return sunday_open    
 
@@ -166,7 +167,7 @@ def trader(contract_info,ib,debugging=False):
     if not open_pos:
         cft = True
         cst = True
-        hist_data = get_historical_data(ib,contract,'1 day',contract_info["trading_hours"],['date','open'],debugging)
+        hist_data = get_historical_data(ib,contract,'1 hour',contract_info["trading_hours"],['date','open'],debugging)
         sunday_open = get_sunday_open(hist_data,debugging)
         while True: # find way to run it for time invertal
             current_price = live_data(contract,ib,debugging) 
@@ -179,6 +180,7 @@ def trader(contract_info,ib,debugging=False):
                 second_target = traded_price + second_target_point
                 update_results(path,contract,trade,sunday_open,first_target,second_target,0)
                 print("Taking Long Position")
+                ib.sleep(delay)
                 break
             elif current_price < sunday_open - short_level:
                 position = -1
@@ -188,9 +190,11 @@ def trader(contract_info,ib,debugging=False):
                 second_target = traded_price - second_target_point
                 update_results(path,contract,trade,sunday_open,first_target,second_target,0)
                 print("Taking Short Position")
+                ib.sleep(delay)
                 break
             else:
                 position = 0
+                ib.sleep(delay)
                 print("No position taken")
     else:
         print("Open Position Found")
@@ -203,7 +207,7 @@ def trader(contract_info,ib,debugging=False):
         cft = open_pos_dict['check_first_target']
         cst = open_pos_dict['check_second_target']
         now = datetime.datetime.now()
-        if now.weekday() == 5 and now.time() > datetime.datetime(2000,1,1,15,59,59).time():
+        if now.weekday() == 4 and now.time() > datetime.datetime(2000,1,1,15,59,59).time():
             print("Friday 4 P.M. : Closing All Position")
             action = "BUY" if position == -1 else "SELL"
             trade = place_order(contract,ib,action,quantity)
@@ -211,7 +215,6 @@ def trader(contract_info,ib,debugging=False):
             exit_code = True
 
     while position != 0:
-        ib.sleep(delay)
         current_price = live_data(contract,ib,debugging)
         print(datetime.datetime.now()," Current Price :",current_price)
         if position*(current_price-first_target) > 0 and cft:
@@ -256,7 +259,7 @@ def trader(contract_info,ib,debugging=False):
             if cst and not cft:
                 second_target = first_target
             continue
-
+        ib.sleep(delay)
     if not cst:
         exit_code = True
     return 0
