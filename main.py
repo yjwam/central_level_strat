@@ -258,7 +258,9 @@ def trader(contract_info,ib,debugging=False):
             update_results(path,contract,trade,sunday_open,first_target,second_target,reverse=True,first=0)
             if cst and not cft:
                 second_target = first_target
+            ib.sleep(delay)
             continue
+
         ib.sleep(delay)
     if not cst:
         exit_code = True
