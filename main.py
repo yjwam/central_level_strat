@@ -66,7 +66,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
                 "Reversed" : reverse,
                 "old_position": temp,
                 "entry_timestamp":str(datetime.datetime.now()),
-                "entry_price":trade.execution.price,
+                "entry_price":temp['entry_price'],
                 'long/short':st,
                 'quantity':trade.execution.shares,
                 'central_level':sunday_open,
@@ -74,7 +74,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
                 'second_target':second_target,
                 'check_first_target' : True,
                 'check_second_target' : True,
-                'current_quantity':trade.execution.shares}
+                'current_quantity':temp['current_quantity'] - trade.execution.shares}
         with open(path, 'w') as f:
             json.dump(temp, f, indent=4)
         return None
@@ -252,9 +252,8 @@ def trader(contract_info,ib,debugging=False):
             position = -1*position
             action = "BUY" if position == 1 else "SELL"
             trade = place_order(contract,ib,action,2*quantity)
-            traded_price = trade.fills[0].execution.price
-            first_target = traded_price + position*first_target_point
-            second_target = traded_price + position*second_target_point
+            first_target = sunday_open + position*abs((first_target - sunday_open))
+            second_target = sunday_open + position*abs((second_target - sunday_open))
             update_results(path,contract,trade,sunday_open,first_target,second_target,reverse=True,first=0)
             if cst and not cft:
                 second_target = first_target
