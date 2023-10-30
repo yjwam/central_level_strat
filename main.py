@@ -74,7 +74,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
                 'second_target':second_target,
                 'check_first_target' : True,
                 'check_second_target' : True,
-                'current_quantity':temp['current_quantity'] - trade.execution.shares}
+                'current_quantity': abs(temp['current_quantity'] - trade.execution.shares)}
         with open(path, 'w') as f:
             json.dump(temp, f, indent=4)
         return None
@@ -100,7 +100,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
         temp["first_exit_timestamp"] = str(datetime.datetime.now())
         temp['first_exit_price'] = trade.execution.price
         temp['first_quantity'] = trade.execution.shares
-        temp['current_quantity'] = temp['current_quantity'] - trade.execution.shares
+        temp['current_quantity'] = abs(temp['current_quantity'] - trade.execution.shares)
         temp['check_first_target'] = False
         with open(path, 'w') as f:
             json.dump(temp, f, indent=4)
@@ -112,7 +112,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
         temp['second_exit_price'] = trade.execution.price
         temp['second_quantity'] = trade.execution.shares
         temp['check_second_target'] = False
-        temp['current_quantity'] = temp['current_quantity'] - trade.execution.shares
+        temp['current_quantity'] = abs(temp['current_quantity'] - trade.execution.shares)
         with open(path, 'w') as f:
             json.dump(temp, f, indent=4)
     
@@ -122,7 +122,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
         temp["exit_timestamp"] = str(datetime.datetime.now())
         temp['exit_price'] = trade.execution.price
         temp['quantity'] = trade.execution.shares
-        temp['current_quantity'] = temp['current_quantity'] - trade.execution.shares
+        temp['current_quantity'] = abs(temp['current_quantity'] - trade.execution.shares)
         with open(path, 'w') as f:
             json.dump(temp, f, indent=4)
     return None
@@ -134,6 +134,8 @@ def check_open_orders(path,contract):
         with open(path) as f:
             temp = json.load(f)
             if "second_quantity" in list(temp.keys()) or "exit_price" in list(temp.keys()):
+                return False, {}
+            elif temp['entry_timestamp'].isocalendar()[1] != datetime.datetime.now().isocalendar()[1] and temp['entry_timestamp'].weekday() != 7:
                 return False, {}
             else:
                 return True, temp
