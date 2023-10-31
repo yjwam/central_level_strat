@@ -137,7 +137,7 @@ def check_open_orders(path,contract):
             temp = json.load(f)
             if "second_quantity" in list(temp.keys()) or "exit_price" in list(temp.keys()):
                 return False, {}
-            elif datetime.strptime(temp['entry_timestamp'], "%Y-%m-%d %H:%M:%S.%f").isocalendar()[1] != datetime.datetime.now().isocalendar()[1] and temp['entry_timestamp'].weekday() != 7:
+            elif datetime.datetime.strptime(temp['entry_timestamp'], "%Y-%m-%d %H:%M:%S.%f").isocalendar()[1] != datetime.datetime.now().isocalendar()[1] and temp['entry_timestamp'].weekday() != 7:
                 return False, {}
             else:
                 return True, temp
