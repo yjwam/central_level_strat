@@ -146,7 +146,7 @@ def check_open_orders(path,contract):
 
 def get_sunday_open(data,manual):
     if manual:
-        return float(input("Enter sunday close: "))
+        return float(input("Enter Sunday Open : "))
     data['weekday'] = [date.weekday() for date in data['date']]
     data = data.sort_values(by=['weekday','date'], ascending=[False,True])
     data = data.reset_index()
@@ -173,6 +173,7 @@ def trader(contract_info,ib,debugging=False):
         cst = True
         hist_data = get_historical_data(ib,contract,'1 hour',contract_info["trading_hours"],['date','open'],debugging)
         sunday_open = get_sunday_open(hist_data,manual_sunday_open)
+        print("Central Level :",sunday_open)
         while True: # find way to run it for time invertal
             current_price = live_data(contract,ib,debugging) 
             print(datetime.datetime.now()," Current Price :",current_price)
@@ -210,17 +211,21 @@ def trader(contract_info,ib,debugging=False):
         quantity = open_pos_dict["current_quantity"]
         cft = open_pos_dict['check_first_target']
         cst = open_pos_dict['check_second_target']
+        
+
+    while position != 0:
+        current_price = live_data(contract,ib,debugging)
         now = datetime.datetime.now()
+        print(now," Current Price :",current_price)
+
         if now.weekday() == 4 and now.time() > datetime.datetime(2000,1,1,15,59,59).time():
             print("Friday 4 P.M. : Closing All Position")
             action = "BUY" if position == -1 else "SELL"
             trade = place_order(contract,ib,action,quantity)
             update_results(path,contract,trade,first=3)
             exit_code = True
+            position = 0
 
-    while position != 0:
-        current_price = live_data(contract,ib,debugging)
-        print(datetime.datetime.now()," Current Price :",current_price)
         if position*(current_price-first_target) > 0 and cft:
             cft = False
             if position > 0:
