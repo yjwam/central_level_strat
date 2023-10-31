@@ -28,7 +28,7 @@ def get_sunday_open(data,debugging):
     if debugging:
         return float(input("Enter sunday close: "))
     data['weekday'] = [date.weekday() for date in data['date']]
-    data = data.sort_values(by=['weekday','date'], ascending=False)
+    data = data.sort_values(by=['weekday','date'], ascending=[False,True])
     data = data.reset_index()
     sunday_open = data.loc[0,'open']
     return sunday_open
@@ -38,9 +38,9 @@ def create_ib_contract(contract,ib):
     contract = ib.qualifyContracts(contract)[0]
     return contract
 
-contract_info = {"symbol" : "AAPL",
-                "secType" : "STK",
-                "exchange" : "SMART",
+contract_info = {"symbol" : "MES",
+                "secType" : "CONTFUT",
+                "exchange" : "CME",
                 "currency" : "USD"}
 
 ib = IB()
@@ -61,6 +61,6 @@ for i in range(1,51):
 
 contract = create_ib_contract(contract_info,ib)
 hist_data = get_historical_data(ib,contract,'1 hour','ETH',['date','open'])
-sunday_open = get_sunday_open(hist_data)
+sunday_open = get_sunday_open(hist_data,False)
 
 print("Sunday Open:" ,sunday_open)

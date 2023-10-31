@@ -66,7 +66,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
                 "Reversed" : reverse,
                 "old_position": temp,
                 "entry_timestamp":str(datetime.datetime.now()),
-                "entry_price":temp['entry_price'],
+                "entry_price":trade.execution.price,
                 'long/short':st,
                 'quantity':trade.execution.shares,
                 'central_level':sunday_open,
@@ -74,6 +74,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
                 'second_target':second_target,
                 'check_first_target' : True,
                 'check_second_target' : True,
+                'reversal_point':temp['reversal_point'],
                 'current_quantity': abs(temp['current_quantity'] - trade.execution.shares)}
         with open(path, 'w') as f:
             json.dump(temp, f, indent=4)
@@ -90,6 +91,7 @@ def update_results(path,contract,trade,sunday_open=0,first_target=0,second_targe
                 'second_target':second_target,
                 'check_first_target' : True,
                 'check_second_target' : True,
+                'reversal_point':trade.execution.price,
                 'current_quantity':trade.execution.shares}
         with open(path, 'w') as f:
             json.dump(temp, f, indent=4)
@@ -135,18 +137,18 @@ def check_open_orders(path,contract):
             temp = json.load(f)
             if "second_quantity" in list(temp.keys()) or "exit_price" in list(temp.keys()):
                 return False, {}
-            elif temp['entry_timestamp'].isocalendar()[1] != datetime.datetime.now().isocalendar()[1] and temp['entry_timestamp'].weekday() != 7:
+            elif datetime.strptime(temp['entry_timestamp'], "%Y-%m-%d %H:%M:%S.%f").isocalendar()[1] != datetime.datetime.now().isocalendar()[1] and temp['entry_timestamp'].weekday() != 7:
                 return False, {}
             else:
                 return True, temp
     except:
         return False,{}
 
-def get_sunday_open(data,debugging):
-    if debugging:
+def get_sunday_open(data,manual):
+    if manual:
         return float(input("Enter sunday close: "))
     data['weekday'] = [date.weekday() for date in data['date']]
-    data = data.sort_values(by=['weekday','date'], ascending=False)
+    data = data.sort_values(by=['weekday','date'], ascending=[False,True])
     data = data.reset_index()
     sunday_open = data.loc[0,'open']
     return sunday_open    
@@ -158,7 +160,7 @@ def trader(contract_info,ib,debugging=False):
     contract = create_ib_contract(contract_info['contract'],ib)
     # check any open positions
     print("Checking Open Position")
-    open_pos,open_pos_dict = check_open_orders(path,contract) #istead of this right function to store sunday open or read file for sunday open
+    open_pos,open_pos_dict = check_open_orders(path,contract)
     if not open_pos:
         print("No Open Position Found")
     long_level = contract_info['long_level']
@@ -170,7 +172,7 @@ def trader(contract_info,ib,debugging=False):
         cft = True
         cst = True
         hist_data = get_historical_data(ib,contract,'1 hour',contract_info["trading_hours"],['date','open'],debugging)
-        sunday_open = get_sunday_open(hist_data,debugging)
+        sunday_open = get_sunday_open(hist_data,manual_sunday_open)
         while True: # find way to run it for time invertal
             current_price = live_data(contract,ib,debugging) 
             print(datetime.datetime.now()," Current Price :",current_price)
@@ -178,8 +180,8 @@ def trader(contract_info,ib,debugging=False):
                 position = 1
                 trade = place_order(contract,ib,"BUY",quantity)
                 traded_price = trade.fills[0].execution.price
-                first_target = traded_price + first_target_point
-                second_target = traded_price + second_target_point
+                first_target = sunday_open + long_level + first_target_point
+                second_target = sunday_open + long_level + second_target_point
                 update_results(path,contract,trade,sunday_open,first_target,second_target,0)
                 print("Taking Long Position")
                 ib.sleep(delay)
@@ -188,8 +190,8 @@ def trader(contract_info,ib,debugging=False):
                 position = -1
                 trade = place_order(contract,ib,"SELL",quantity)
                 traded_price = trade.fills[0].execution.price
-                first_target = traded_price - first_target_point
-                second_target = traded_price - second_target_point
+                first_target = traded_price - short_level - first_target_point
+                second_target = traded_price - short_level - second_target_point
                 update_results(path,contract,trade,sunday_open,first_target,second_target,0)
                 print("Taking Short Position")
                 ib.sleep(delay)
@@ -200,7 +202,7 @@ def trader(contract_info,ib,debugging=False):
                 print("No position taken")
     else:
         print("Open Position Found")
-        traded_price = open_pos_dict['entry_price']
+        traded_price = open_pos_dict['reversal_point']
         first_target = open_pos_dict['first_target']
         second_target = open_pos_dict['second_target']
         sunday_open = open_pos_dict['central_level']
@@ -313,5 +315,7 @@ for i in range(1,51):
         print(f"Client ID {i} in use")
         continue
 est = pytz.timezone('US/Eastern')
+
+manual_sunday_open = False
 if ib_open:
     main(ib,i)
