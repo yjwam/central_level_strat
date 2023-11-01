@@ -191,8 +191,8 @@ def trader(contract_info,ib,debugging=False):
                 position = -1
                 trade = place_order(contract,ib,"SELL",quantity)
                 traded_price = trade.fills[0].execution.price
-                first_target = traded_price - short_level - first_target_point
-                second_target = traded_price - short_level - second_target_point
+                first_target = sunday_open - short_level - first_target_point
+                second_target = sunday_open - short_level - second_target_point
                 update_results(path,contract,trade,sunday_open,first_target,second_target,0)
                 print("Taking Short Position")
                 ib.sleep(delay)
@@ -261,8 +261,12 @@ def trader(contract_info,ib,debugging=False):
             position = -1*position
             action = "BUY" if position == 1 else "SELL"
             trade = place_order(contract,ib,action,2*quantity)
-            first_target = sunday_open + position*abs((first_target - sunday_open))
-            second_target = sunday_open + position*abs((second_target - sunday_open))
+            if position == 1:
+                first_target = sunday_open + long_level + first_target_point
+                second_target = sunday_open + long_level + second_target_point
+            else:
+                first_target = sunday_open - short_level - first_target_point
+                second_target = sunday_open - short_level - second_target_point
             update_results(path,contract,trade,sunday_open,first_target,second_target,reverse=True,first=0)
             if cst and not cft:
                 second_target = first_target
